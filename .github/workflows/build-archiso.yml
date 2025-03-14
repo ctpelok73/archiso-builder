@@ -15,9 +15,11 @@ jobs:
 
       - name: Set up Docker
         run: |
-          sudo apt update
-          sudo apt install -y docker.io
-          sudo systemctl start docker
+          # Удаляем конфликтующие пакеты
+          sudo apt remove --purge containerd
+          # Устанавливаем Docker
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sudo sh get-docker.sh
 
       - name: Build Arch Linux ISO
         run: |
@@ -31,7 +33,7 @@ jobs:
             cd /my-archiso/releng && mkarchiso -v ."
 
       - name: Upload ISO as artifact
-        uses: actions/upload-artifact@v4  # Используем v4 вместо v3
+        uses: actions/upload-artifact@v4
         with:
           name: archlinux.iso
           path: my-archiso/out/*.iso  # Загружаем собранный ISO как артефакт
