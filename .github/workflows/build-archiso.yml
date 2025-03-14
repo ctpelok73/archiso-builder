@@ -31,7 +31,7 @@ jobs:
             cd /my-archiso/releng && mkarchiso -v ."
 
       - name: Upload ISO as artifact
-        uses: actions/upload-artifact@v3  # Используем v3 вместо v2
+        uses: actions/upload-artifact@v4  # Используем v4 вместо v3
         with:
           name: archlinux.iso
           path: my-archiso/out/*.iso  # Загружаем собранный ISO как артефакт
