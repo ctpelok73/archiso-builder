@@ -11,26 +11,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2  # Клонируем репозиторий
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1  # Оптимизация для быстрого клонирования
 
       - name: Set up Docker
         run: |
-          # Удаляем конфликтующий пакет containerd
+          echo "Удаление конфликтующего пакета containerd..."
           sudo apt remove --purge containerd
-          # Устанавливаем Docker с помощью официального скрипта
+          echo "Установка Docker..."
           curl -fsSL https://get.docker.com -o get-docker.sh
           sudo sh get-docker.sh
-          # Добавляем пользователя в группу docker
+          echo "Добавление пользователя в группу docker..."
           sudo usermod -aG docker $USER
+          echo "✅ Docker установлен и настроен."
 
       - name: Run build script
         run: |
+          echo "Запуск скрипта сборки..."
           chmod +x build-arch.sh
           ./build-arch.sh
+          echo "Изменение прав доступа на рабочую директорию..."
           sudo chown -R $USER:$USER my-archiso
+          echo "✅ Сборка завершена."
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v4
         with:
           name: archlinux.iso
-          path: my-archiso/out/*.iso  # Загружаем собранный ISO как артефакт
+          path: my-archiso/out/*.iso
+          if-no-files-found: error
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
