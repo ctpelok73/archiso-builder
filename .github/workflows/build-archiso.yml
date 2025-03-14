@@ -1,0 +1,37 @@
+name: Build Arch Linux ISO
+
+on:
+  push:
+    branches:
+      - main  # Запускать сборку при пуше в ветку main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Используем Ubuntu для сборки
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Клонируем репозиторий
+
+      - name: Set up Docker
+        run: |
+          sudo apt update
+          sudo apt install -y docker.io
+          sudo systemctl start docker
+
+      - name: Build Arch Linux ISO
+        run: |
+          # Создаем рабочую директорию
+          mkdir -p my-archiso
+
+          # Запускаем Docker-контейнер для сборки
+          docker run --privileged --rm -v $(pwd)/my-archiso:/my-archiso archlinux bash -c \
+            "pacman -Sy --noconfirm archiso base-devel && \
+            cp -r /usr/share/archiso/configs/releng /my-archiso/ && \
+            cd /my-archiso/releng && mkarchiso -v ."
+
+      - name: Upload ISO as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: archlinux.iso
+          path: my-archiso/out/*.iso  # Загружаем собранный ISO как артефакт
