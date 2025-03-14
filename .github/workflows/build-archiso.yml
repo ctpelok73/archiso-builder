@@ -28,12 +28,9 @@ jobs:
 
       - name: Run build script
         run: |
-          echo "Запуск скрипта сборки..."
           chmod +x build-arch.sh
           ./build-arch.sh
-          echo "Изменение прав доступа на рабочую директорию..."
           sudo chown -R $USER:$USER my-archiso
-          echo "✅ Сборка завершена."
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v4
