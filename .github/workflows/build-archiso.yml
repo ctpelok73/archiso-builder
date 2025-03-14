@@ -13,22 +13,103 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2  # Клонируем репозиторий
 
-      - name: Set up Docker
+      - name: Set up Arch Linux environment
         run: |
+          # Устанавливаем необходимые пакеты
           sudo apt update
-          sudo apt install -y docker.io
-          sudo systemctl start docker
+          sudo apt install -y archiso squashfs-tools libisoburn
+
+      - name: Create Archiso configuration
+        run: |
+          # Создаем рабочую директорию
+          mkdir -p my-archiso/releng
+
+          # Копируем стандартную конфигурацию Archiso
+          cp -r /usr/share/archiso/configs/releng/* my-archiso/releng/
+
+          # Переходим в директорию с конфигурацией
+          cd my-archiso/releng
+
+          # Создаем файл packages.x86_64
+          cat <<EOF > packages.x86_64
+          base
+          linux
+          linux-firmware
+          networkmanager
+          sudo
+          grub
+          plasma-meta
+          kde-applications-meta
+          pamac-gui
+          git
+          base-devel
+          firefox
+          telegram-desktop
+          htop
+          EOF
+
+          # Настройка локализации
+          echo "LANG=ru_RU.UTF-8" > airootfs/etc/locale.conf
+          echo "KEYMAP=ru" > airootfs/etc/vconsole.conf
+
+          # Настройка пользователя
+          mkdir -p airootfs/etc/sudoers.d
+          echo "archuser ALL=(ALL) ALL" > airootfs/etc/sudoers.d/10-user
+          chmod 440 airootfs/etc/sudoers.d/10-user
+
+          # Автовход в KDE Plasma
+          mkdir -p airootfs/etc/sddm.conf.d
+          echo -e "[Autologin]\nUser=archuser\nSession=plasma.desktop" > airootfs/etc/sddm.conf.d/autologin.conf
+
+          # Ярлык и инструкция на рабочем столе
+          mkdir -p airootfs/home/archuser/Desktop
+          chown -R 1000:1000 airootfs/home/archuser
+
+          # Ярлык для установки
+          cat <<EOF > airootfs/home/archuser/Desktop/install-yandex.desktop
+          [Desktop Entry]
+          Version=1.0
+          Name=Установить Яндекс Браузер
+          Comment=Запустите этот скрипт для установки
+          Exec=konsole -e /home/archuser/install-yandex-browser.sh
+          Icon=system-run
+          Terminal=false
+          Type=Application
+          EOF
+
+          # Инструкция
+          cat <<EOF > airootfs/home/archuser/Desktop/README.txt
+          Добро пожаловать!
+
+          Чтобы установить Яндекс Браузер:
+          1. Дважды кликните на ярлык "Установить Яндекс Браузер".
+          2. Введите пароль пользователя, если потребуется.
+          3. Дождитесь завершения установки.
+
+          Скрипт удалится автоматически после выполнения.
+          EOF
+
+          # Скрипт установки
+          cat <<'EOF' > airootfs/home/archuser/install-yandex-browser.sh
+          #!/bin/bash
+          echo "Устанавливаю Яндекс Браузер..."
+          git clone https://aur.archlinux.org/yandex-browser-beta.git
+          cd yandex-browser-beta
+          makepkg -si --noconfirm
+
+          # Удаление скрипта и ярлыков
+          rm -f ~/install-yandex-browser.sh ~/Desktop/install-yandex.desktop ~/Desktop/README.txt
+          EOF
+
+          chmod +x airootfs/home/archuser/install-yandex-browser.sh
 
       - name: Build Arch Linux ISO
         run: |
-          # Создаем рабочую директорию
-          mkdir -p my-archiso
+          # Переходим в директорию с конфигурацией
+          cd my-archiso/releng
 
-          # Запускаем Docker-контейнер для сборки
-          docker run --privileged --rm -v $(pwd)/my-archiso:/my-archiso archlinux bash -c \
-            "pacman -Sy --noconfirm archiso base-devel && \
-            cp -r /usr/share/archiso/configs/releng /my-archiso/ && \
-            cd /my-archiso/releng && mkarchiso -v ."
+          # Запускаем сборку ISO
+          sudo mkarchiso -v .
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v2
