@@ -15,19 +15,17 @@ jobs:
 
       - name: Set up Docker
         run: |
-          # Удаляем конфликтующий пакет containerd
-          sudo apt remove --purge containerd
-          # Устанавливаем Docker с помощью официального скрипта
-          curl -fsSL https://get.docker.com -o get-docker.sh
-          sudo sh get-docker.sh
-          # Добавляем пользователя в группу docker
+          # Устанавливаем Docker
+          sudo apt update
+          sudo apt install -y docker.io
+          sudo systemctl start docker
+          sudo systemctl enable docker
           sudo usermod -aG docker $USER
 
       - name: Run build script
         run: |
           chmod +x build-arch.sh
           ./build-arch.sh
-          sudo chown -R $USER:$USER my-archiso
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v4
